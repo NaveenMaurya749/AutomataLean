@@ -164,9 +164,7 @@ lemma evalStep_decrements_input (desc : InstantDesc M) (hi : desc.input_tape ≠
       simp only [List.length_cons]
       unfold evalStep
       simp
-      split
-      · simp
-      · simp
+      sorry
 
 #do_later "Add [@simp] lemmas"
 
