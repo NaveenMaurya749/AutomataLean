@@ -1,5 +1,5 @@
 # AutomataLean
-This project aims to formalize Automata Theory in Lean4. Some parts of Automata Theory have been already formalized in [Mathlib.Computability](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Computability/DFA.html). This project aims to expand on the same, and potentially the 
+This project aims to formalize Automata Theory in Lean4. Some parts of Automata Theory have been already formalized in [Mathlib.Computability](https://leanprover-community.github.io/mathlib4_docs/Mathlib/Computability/DFA.html). This project aims to expand on the same, prove some important results regarding PDAs and CFGs, and potentially implement parsing algorithms for CFGs.
 
 ## Introduction
 **Automata Theory** is a fundamental area of theoretical computer science that focuses on the study of abstract computational models, known as automata, and the formal languages they recognize. It provides a mathematical framework for understanding the behavior of computational systems and the limits of what can be computed.
@@ -22,7 +22,7 @@ The project aims to address the following goals:
 - Implement parsing of Context-Free Grammars using a parsing algorithm like [CYK parser](https://en.wikipedia.org/wiki/CYK_algorithm) or [Earley parser](https://en.wikipedia.org/wiki/Earley_parser).
 - More, if time permits
 
-# Git Repository
+## Git Repository
 The project repository will be maintained on Github at [https://github.com/NaveenMaurya749/AutomataLean](https://github.com/NaveenMaurya749/AutomataLean)
 
 ## References
