@@ -5,6 +5,7 @@ open Lean Meta Elab Term Tactic
 syntax "#note" str : command
 syntax "#do_later" str : command
 
+
 elab_rules : command
   | `(#note $s:str) => do
     let msg := s.getString

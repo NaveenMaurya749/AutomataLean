@@ -6,221 +6,17 @@ universe u v w
 open Computability
 
 /-
-# Determinstic Finite Automaton (DFA)
-DFAs are theretical models of computation that accept "regular languages".
-Mathematicaly, a DFA is a 5-tuple (Q, Σ, δ, q0, F) where
--- Q is a finite set of states
--- Σ is a finite set of input symbols,
--- δ : Q × Σ → Q is the transition function,
--- q0 ∈ Q is the initial state,
--- and F ⊆ Q is the set of accepting states.
-
-This has already been implemented in Mathlib.Computability.DFA
--/
-
-/-
-structure DFA.{u, v} (α : Type u) (σ : Type v) : Type (max u v)
-number of parameters: 2
-fields:
-  DFA.step : σ → α → σ
-  DFA.start : σ
-  DFA.accept : Set σ
-constructor:
-  DFA.mk.{u, v} {α : Type u} {σ : Type v} (step : σ → α → σ) (start : σ) (accept : Set σ) : DFA α σ
--/
-#print DFA
-
-/-
-structure NFA.{u, v} (α : Type u) (σ : Type v) : Type (max u v)
-number of parameters: 2
-fields:
-  NFA.step : σ → α → Set σ
-  NFA.start : Set σ
-  NFA.accept : Set σ
-constructor:
-  NFA.mk.{u, v} {α : Type u} {σ :success Type v} (step : σ → α → Set σ) (start accept : Set σ) : NFA α σ
--/
-#print NFA
-
-/-
-structure εNFA.{u, v} (α : Type u) (σ : Type v) : Type (max u v)
-number of parameters: 2
-fields:
-  εNFA.step : σ → Option α → Set σ
-  εNFA.start : Set σ
-  εNFA.accept : Set σ
-constructor:
-  εNFA.mk.{u, v} {α : Type u} {σ : Type v} (step : σ → Option α → Set σ) (start accept : Set σ) : εNFA α σ
--/
-#print εNFA
-
-/-
 # Pushdown Automata (PDA)
+
 PDAs are a more powerful model of computation than DFAs, as they can accept "context-free languages".
 Mathematicaly, a PDA is a 6-tuple (Q, Σ, Γ, δ, q0, F) where
 -- Q is a finite set of states
 -- Σ is a finite set of input symbols,
 -- Γ is a finite set of stack symbols,
 -- δ : Q × Σ × Γ → Set (Q × Γ*) is the transition function,
--- q0 ∈ Q is the initial state,
+-- q₀ ∈ Q is the initial state,
 -- and F ⊆ Q is the set of accepting states.
-
-## Deterministic Pushdown Automata (DPDA)
-First, we define a deterministic pushdown automata (DPDA) as a PDA with the following properties:
-1. The transition function δ is deterministic, meaning that for each state, input symbol, and stack symbol,
--- there is at most one possible transition.
-2. The stack is not allowed to be empty when reading an input symbol.
-3. The stack is allowed to be empty when reading an ε-transition.
-
 -/
-
-structure DPDA (Q : Type u) (α : Type v) (Γ : Type w) where
-  /-- A transition function from state to state labelled by the alphabet. -/
-  transition : Q → Option α → Γ → Option (Q × (List Γ))
-  inital_state : Q
-  initial_stack : Γ
-  accept : Q → Prop
-  h_determinism : ∀ (q : Q) (y : Γ),
-    transition q none y ≠ none → (a : α) → transition q (some a) y = none
-
-#do_later "Worry about Fintype and Finite later"
-
-namespace DPDA
-
-variable {Q : Type u} {α : Type v} {Γ : Type w} (M : DPDA Q α Γ)
-
--- Inhabited instance for PDA
-instance [Inhabited Q] [Inhabited Γ]: Inhabited (DPDA Q α Γ) :=
-    ⟨DPDA.mk (fun _ _ _ => default) (default) (default) (fun _ => default) (fun _ _ _ _ => rfl)⟩
-
-/-
-An Instantaneous Description of a PDA is a triple (p, w, β) consists of:
--- p is the current state of the PDA
--- w is the remaining input string
--- β is the current stack contents
-The stack contents are represented as a list of symbols, with the top of the stack being the head of the list.
--/
-
-structure InstantDesc (M : DPDA Q α Γ) where
-  state : Q
-  input_tape : List α
-  stack_tape : List Γ
-
-/-Example of DFA-/
-def my_dfa : DFA Char Bool :=
-  { step := (fun q _ => ¬ q)
-    start := 0
-    accept := fun q => q = true}
-
-#eval my_dfa.eval "sdas".toList
-
--- Example of a PDA that accepts the language of balanced parentheses.
-
---namespace Balanced
-
-inductive Parentheses : Type
-| left | right
-deriving Inhabited, Repr
-
-inductive States : Type
-| q0 | q1
-deriving Inhabited, Repr, Fintype
-
-inductive Stack : Type
-| A | Z
-deriving Inhabited, Repr
-
-open Parentheses States Stack
-
-def my_dpda : DPDA States Parentheses Stack :=
-  ⟨(fun q x y =>
-    match q, x, y with
-    | q0, some left,  _ => some (q0, [A, y])
-    | q0, some right, A => some (q1, [])
-    | _, _, _           => none
-    ),
-    q0,
-    Z,
-    (fun y => y = q1),
-    (fun _ _ => by simp)
-  ⟩
-#note "Yayyyyyyyyyyyy!!!!!!!!!!!!!"
-
--- end Balanced
-
-#check DPDA.transition
-
-/-
-The function `DPDA.evalStep desc : Option (InstantDesc M)`
-returns the next instantaneous description of the DPDA after performing
-*the* transition on the current description, if there exists a transition.
-Otherwise, it returns `none`
--/
-
-def evalStep (M : DPDA Q α Γ) (desc : InstantDesc M)
-  : Option (InstantDesc M) :=
-    have ⟨q, input, stack⟩ := desc
-
-    match input, stack with
-    | _, [] => none
-
-    | [], top::rest =>
-      match h1 : M.transition q none top with
-      | none => none
-      | some (q', new_stack) =>
-        have h : (a : α) → M.transition q (some a) top = none := by
-          intro a
-          apply M.h_determinism
-          simp [h1]
-        some (InstantDesc.mk q' [] (new_stack ++ rest))
-
-    | head::tail, top::rest =>
-      match M.transition q (some head) top with
-      | none => none
-      | some (q', new_stack) =>
-        some (InstantDesc.mk q' tail (new_stack ++ rest))
-
-#do_later "Add [@simp] lemmas"
-
-/-
-The function `evalFrom`
--/
-
-def evalFrom (M : DPDA Q α Γ) (desc : InstantDesc M) : InstantDesc M :=
-  match h : evalStep M desc with
-  | none => desc
-  | some desc' =>
-    match desc.input_tape with
-    | [] => desc
-    | head::tail => evalFrom M desc'
-termination_by desc.input_tape.length
-decreasing_by
-  simp [evalStep] at h
-  split at h
-  · contradiction
-  · split at h
-    · contradiction
-    · sorry
-    -- sorry
-  · sorry
-
-def eval (M : DPDA Q α Γ) (input : List α) : (InstantDesc M) :=
-  M.evalFrom ⟨M.inital_state, input, [M.initial_stack]⟩
-
-def accepts (M : DPDA Q α Γ) (input : List α) : Prop :=
-  let desc := M.eval input
-  (M.accept desc.state) ∨ (desc.stack_tape = [] ∧ desc.input_tape = [])
-
-/-
-failed to synthesize
-  Decidable (my_pda.accepts [left, right, left, right])
-
-Additional diagnostic information may be available using the `set_option diagnostics true` command.
--/
--- set_option diagnostics true
--- #eval my_dpda.accepts [left, right, left, right]
-
-end DPDA
 
 structure PDA (Q : Type u) (α : Type v) (Γ : Type w) where
   transition : Q → Option α → Γ → Set (Q × List Γ)
@@ -297,27 +93,215 @@ For each pushdown automata M, there exists another PDA M' such that
 L(M) = N(M') and N(M) = L(M')
 -/
 
--- We define the following auxilary inductive types
+-- We define the following auxilary inductive types in order to help prove the theorem
 inductive AuxState : Type where
 | init : AuxState
 | empty : AuxState
+deriving Inhabited, Repr, Fintype, DecidableEq
 
 inductive MetaStack : Type where
 | meta : MetaStack
+deriving Inhabited, Repr, Fintype, DecidableEq
 
-theorem final_state_equiv_empty_stack {Q' : Type u} {Γ' : Type w} (M : PDA Q α Γ) :
-    ∃ (M' M'': PDA Q' α Γ'),
+theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (M : PDA Q α Γ) [Fintype Γ]:
+    ∃ (Q₁ : Type u) (Γ₁ : Type w) (M' M'': PDA Q₁ α Γ₁),
     M.language_final_state = M'.language_empty_stack ∧
     M.language_empty_stack = M''.language_final_state
   := by
     -- We shall construct a new PDA M' such that M' accepts L(M) as well as N(M) by both final state and empty stack
     let Q' : Type u := Q ⊕ AuxState
     let Γ' : Type w := Γ ⊕ MetaStack
+    let q₀ : Q' := Sum.inl M.inital_state
     let s : Γ' := Sum.inl M.initial_stack
+    -- let q₀ : StatePrime Q := StatePrime.inl M.inital_state
+    -- let s : StackPrime Γ := StackPrime.inl M.initial_stack
+
+    have h₀ : q₀.isLeft = true := by
+      simp only [q₀, Sum.isLeft_inl]
+    have h₁ : s.isLeft = true := by
+      simp only [s, Sum.isLeft_inl]
+
+    have decide (q : Q) : Decidable (M.accept q) := by
+      apply Classical.dec
+
+    let primeCast : Set (Q × List Γ) → Set (Q' × List Γ') :=
+      fun f =>
+        (fun (q, X) =>
+          match q with
+          | Sum.inl _ => True
+          | _ => False)
+
     let transition' : Q' → Option α → Γ' → Set (Q' × List Γ') :=
-      (fun q x y =>
-        match q, x, y with
-        | init, none, meta => {(M.initial_state, inl M.inital_stack::[meta])}
-        )
-    sorry
-    --let M' : PDA Q' α Γ' := ⟨⟩
+      (fun q a x =>
+        match q, a, x with
+        | Sum.inr AuxState.init, none, Sum.inr MetaStack.meta => {(q₀, [x])}
+        | Sum.inr AuxState.empty, none, _ => {(Sum.inr AuxState.empty, [])}
+        | Sum.inl q', none, Sum.inr MetaStack.meta =>
+          if M.accept q' then
+            {(Sum.inr AuxState.empty, [Sum.inr MetaStack.meta])}
+          else
+            ∅
+        | Sum.inl q', none, Sum.inl X =>
+          if M.accept q' then
+            {(Sum.inr AuxState.empty, [Sum.inl X])}
+          else
+            primeCast (M.transition q' none X)
+        | Sum.inl q', some a', Sum.inl X =>
+          primeCast (M.transition q' (some a') X)
+        | _, _, _ =>
+          ∅
+      )
+
+    let accept' : Q' → Prop :=
+      fun q =>
+        match q with
+        | Sum.inr AuxState.empty => True
+        | _ => False
+
+    let transition'' : Q' → Option α → Γ' → Set (Q' × List Γ') :=
+      (fun q a x =>
+        match q, a, x with
+        | Sum.inr AuxState.init, none, Sum.inr MetaStack.meta =>
+            {(q₀, [s, x])}
+        | Sum.inl q', none, Sum.inr MetaStack.meta =>
+            {(Sum.inr AuxState.empty, [x])}
+        | Sum.inr AuxState.empty, none, Sum.inr MetaStack.meta =>
+            {(q, [])}
+        | Sum.inl q', _, Sum.inl x' =>
+            primeCast (M.transition q' a x')
+        | _, _, _ =>
+            ∅
+      )
+
+    have M' : PDA Q' α Γ' := ⟨transition', q₀, s, accept'⟩
+    have M'' : PDA Q' α Γ' := ⟨transition'', q₀, s, accept'⟩
+
+    use Q', Γ', M', M''
+
+    have h_part₁ : M.language_final_state = M'.language_empty_stack := by
+      apply Set.ext
+      intro x
+      constructor
+      · simp only [language_final_state, language_empty_stack]
+        intro
+        simp only [Set.mem_setOf_eq] at *
+        sorry
+      · sorry
+
+    have h_part₂ : M.language_empty_stack = M''.language_final_state := sorry
+
+    use h_part₁, h_part₂
+
+#do_later "Complete this proof!"
+
+/-
+# Context-Free Grammars
+
+A context-free grammar is a formal grammar that consists of a set of production rules used to generate strings in a context-free language. It is defined as a 4-tuple (V, Σ, R, S) where:
+-- V is a finite set of variables (non-terminal symbols),
+-- Σ is a finite set of terminal symbols (disjoint from V),
+-- R is a finite set of production rules of the form A → w, where A ∈ V and w ∈ (V ∪ Σ)*,
+-- S ∈ V is the start variable.
+
+Context-free grammars are used to describe the syntax of programming languages and are equivalent in power to pushdown automata.
+
+CFGs have already been implemented in `Mathlib.Computability`
+-/
+
+/-
+structure ContextFreeGrammar.{u_1} (T : Type u_1) : Type (max 1 u_1)
+number of parameters: 1
+fields:
+  ContextFreeGrammar.NT : Type
+  ContextFreeGrammar.initial : self.NT
+  ContextFreeGrammar.rules : Finset (ContextFreeRule T self.NT)
+constructor:
+  ContextFreeGrammar.mk.{u_1} {T : Type u_1} (NT : Type) (initial : NT) (rules : Finset (ContextFreeRule T NT)) :
+    ContextFreeGrammar T
+-/
+#print ContextFreeGrammar
+
+/-
+  ## The language generated by a context-free grammar is the set of strings that can be derived from the start variable using the production rules.
+  It is called a `Context-Free Language (CFL)`
+-/
+
+/-
+  def ContextFreeGrammar.language.{u_1} : {T : Type u_1} → ContextFreeGrammar T → Language T :=
+  fun {T} g ↦ {w | g.Generates (List.map Symbol.terminal w)}
+-/
+#print ContextFreeGrammar.language
+
+
+-- Now, we prove some results about PDAs and CFGs
+
+-- A language is context-free, iff there exists a PDA accepting it.
+-- That is, CFGs and PDAs are equivalent in computing power.
+
+lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
+  ∃ (Q : Type u) (Γ : Type w) (M : PDA Q α Γ),
+  G.language = M.language_empty_stack := by sorry
+
+lemma language_PDA_implies_exists_cfg (L : Language α) (M : PDA Q α Γ)
+  (h : L = M.language_empty_stack ∨ L = M.language_final_state) :
+  ∃ (G : ContextFreeGrammar α), G.language = L := by sorry
+
+theorem PDA_equiv_CFG (L : Language α) :
+  ∃ (Q : Type u) (Γ : Type w) (M : PDA Q α Γ), L = M.language_empty_stack ∨ L = M.language_final_state
+  ↔
+  ∃ (G : ContextFreeGrammar α),L = G.language
+  := by sorry
+
+/-
+  Since a DFA can be simulated by a PDA, all regular languages are context-free
+-/
+theorem regular_implies_context_free (L : Language α) (h : L.IsRegular) : (L.IsContextFree) :=
+  by sorry
+
+/-
+# Non-Context-Free Languages
+There exist Languages that are not Context-Free.
+A key and powerful result that is often very helpful in proving that a given language is not Context-Free
+is the `Pumping Lemma for CFLs`.
+This is akin to the Pumping Lemma for Regular Languages, proven in `Mathlib.Computability.DFA.pumping_lemma`
+-/
+
+
+/-
+# Theorem : Pumping Lemma for Context-Free Languages
+If `L` is a context-free language,
+then there is a number `p` (the pumping length) where, if `w` is any string in `L` of
+length at least `p`, then `s` may be divided into five pieces `w = uvxyz` satisfying the
+conditions
+1. For each `i ≥ 0, u(v^i)x(y^i)z ∈ L`,
+2. `|vy| > 0`, and
+3. `|vxy| ≤ p`.
+
+When `s` is being divided into `uvxyz`, condition 2 says that either `v` or `y` is not
+the empty string. Otherwise the theorem would be trivially true. Condition 3
+states that the pieces `v`, `x`, and `y` together have length at most `p`. This technical
+condition is sometimes useful in proving that certain languages are not context
+free.
+-/
+
+def mulList (l : List α) (n : Nat) : List α :=
+  match n with
+  | 0 => []
+  | m + 1 => l ++ mulList l m
+
+-- We synthesizse an instance of HMul to allow writing `w*n` for `w ... w` (repeated n times)
+instance listHMul : HMul (List α) Nat (List α) where
+  hMul := mulList
+
+theorem pumping_lemma (L : Language α) (h : L.IsContextFree) :
+  ∃ (p : Nat),
+  ∀ w ∈ L, w.length ≥ p →
+  (
+    ∃ (u v x y z : List α),
+      (
+        (i : Nat) → (u ++ v*i ++ x ++ y*i ++ z ∈ L) ∧
+        v.length + y.length > 0 ∧
+        v.length + x.length + y.length ≤ p
+      )
+  )
+:= by sorry
