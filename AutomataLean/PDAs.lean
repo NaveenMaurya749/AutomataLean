@@ -4,6 +4,8 @@ import Mathlib
 universe u v w
 
 open Computability
+open Relation
+open Symbol
 
 /-
 # Pushdown Automata (PDA)
@@ -13,7 +15,7 @@ Mathematicaly, a PDA is a 6-tuple (Q, Σ, Γ, δ, q0, F) where
 -- Q is a finite set of states
 -- Σ is a finite set of input symbols,
 -- Γ is a finite set of stack symbols,
--- δ : Q × Σ × Γ → Set (Q × Γ*) is the transition function,
+-- δ : Q × Σ × Γ → Set (Q × Γ*`) is the transition function,
 -- q₀ ∈ Q is the initial state,
 -- and F ⊆ Q is the set of accepting states.
 -/
@@ -29,6 +31,10 @@ namespace PDA
 open PDA
 
 variable {Q : Type u} {α : Type v} {Γ : Type w}
+
+def start_symbol (Γ : Type w) [Inhabited Γ] : Γ := default
+
+local notation (priority := high) "$" => start_symbol
 
 -- Inhabited instance for PDA
 instance [Inhabited Q] [Inhabited Γ]: Inhabited (PDA Q α Γ) :=
@@ -68,11 +74,15 @@ def sequenceValid (M : PDA Q α Γ) (desc : List (InstantDesc M)) : Prop :=
 The reflexive and transitive closure of the step relation, meaning any
 finite number of step relations, zero, one or `n : Nat`
 -/
-def stepClosure (M : PDA Q α Γ) : (desc₁ : InstantDesc M) → (desc₂ : InstantDesc M) → Prop :=
-  fun desc₁ desc₂ =>
+
+def stepClosure (M : PDA Q α Γ ) := Relation.ReflTransGen M.step
+
+lemma stepClosure_equiv (M : PDA Q α Γ) : M.stepClosure =
+  (fun desc₁ desc₂ =>
   ∃ (steps : List (InstantDesc M)),
   M.sequenceValid steps
-  ∧ steps.head? = some desc₁ ∧ steps.getLast? = some desc₂
+  ∧ steps.head? = some desc₁ ∧ steps.getLast? = some desc₂)
+:= by sorry
 
 /-
 # Languages related to PDA
@@ -82,10 +92,10 @@ We now define the following two important languages (sets of finite strings over
 -/
 
 def language_final_state (M : PDA Q α Γ) : Language α :=
-  {w : List α | ∃ (f : Q) (γ : List Γ), M.step ⟨M.inital_state, w, [M.initial_stack]⟩ ⟨f, [], γ⟩ ∧ M.accept f}
+  {w : List α | ∃ (f : Q) (γ : List Γ), M.stepClosure ⟨M.inital_state, w, [M.initial_stack]⟩ ⟨f, [], γ⟩ ∧ M.accept f}
 
 def language_empty_stack (M : PDA Q α Γ) : Language α :=
-  {w : List α | ∃ (q : Q), M.step ⟨M.inital_state, w, [M.initial_stack]⟩ ⟨q, [], []⟩}
+  {w : List α | ∃ (q : Q), M.stepClosure ⟨M.inital_state, w, [M.initial_stack]⟩ ⟨q, [], []⟩}
 
 /-
 # Theorem (Equivalence of acceptence by final state and empty stack)
@@ -103,7 +113,7 @@ inductive MetaStack : Type where
 | meta : MetaStack
 deriving Inhabited, Repr, Fintype, DecidableEq
 
-theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (M : PDA Q α Γ) [Fintype Γ]:
+theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (M : PDA Q α Γ) [Fintype Q] :
     ∃ (Q₁ : Type u) (Γ₁ : Type w) (M' M'': PDA Q₁ α Γ₁),
     M.language_final_state = M'.language_empty_stack ∧
     M.language_empty_stack = M''.language_final_state
@@ -125,11 +135,7 @@ theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (
       apply Classical.dec
 
     let primeCast : Set (Q × List Γ) → Set (Q' × List Γ') :=
-      fun f =>
-        (fun (q, X) =>
-          match q with
-          | Sum.inl _ => True
-          | _ => False)
+      Set.image (Prod.map Sum.inl <| List.map Sum.inl)
 
     let transition' : Q' → Option α → Γ' → Set (Q' × List Γ') :=
       (fun q a x =>
@@ -185,6 +191,7 @@ theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (
       · simp only [language_final_state, language_empty_stack]
         intro
         simp only [Set.mem_setOf_eq] at *
+
         sorry
       · sorry
 
@@ -238,25 +245,130 @@ constructor:
 -- A language is context-free, iff there exists a PDA accepting it.
 -- That is, CFGs and PDAs are equivalent in computing power.
 
+inductive QCfg : Type u where
+| q_start : QCfg
+| q_loop : QCfg
+| q_accept : QCfg
+
+inductive ΓCfg {α : Type v} (G : ContextFreeGrammar α) where
+| empty : ΓCfg G
+| start : ΓCfg G
+| term (a : α) : ΓCfg G
+| production : (A : G.NT) → ΓCfg G
+
+def symbolToΓ {α : Type v} {G : ContextFreeGrammar α} (s : Symbol α G.NT) : ΓCfg G :=
+  match s with
+  | Symbol.terminal t => ΓCfg.term t
+  | Symbol.nonterminal A => ΓCfg.production A
+
+local notation (priority := high) "q₀" => QCfg.q_start
+local notation (priority := high) "q₁" => QCfg.q_loop
+local notation (priority := high) "q₂" => QCfg.q_accept
+
+local notation (priority := high) "$" => ΓCfg.empty
+
+-- instance h {G : ContextFreeGrammar α} (x : QCfg × List ΓCfg) (A : G.NT) : Decidable (x.1 = q₁ ∧ ∃ (p : ContextFreeRule α G.NT), p ∈ G.rules ∧ A = p.input ∧ x.2 = List.map symbolToΓ p.output)
+
 lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
-  ∃ (Q : Type u) (Γ : Type w) (M : PDA Q α Γ),
-  G.language = M.language_empty_stack := by sorry
+  ∃ (Q : Type u) (Γ: Type v) (M : PDA Q α Γ) (h : Fintype Q),
+  G.language = M.language_empty_stack
+:= by
+  -- We need to construct a PDA from the CFG
+  let Q : Type u := QCfg
+  let Γ := ΓCfg G
+
+  #check Γ
+  #check Q × List Γ
+  #check Set (Q × List Γ)
+  #check G.rules
+
+  have h (x : Q × List Γ) (A : G.NT) : Decidable (x.1 = q₁ ∧ ∃ (p : ContextFreeRule α G.NT), p ∈ G.rules ∧ A = p.input ∧ x.2 = List.map symbolToΓ p.output) := by apply Classical.dec
+
+  let transition : Q → Option α → Γ → Set (Q × List Γ) :=
+  (fun q a x =>
+      match q, a, x with
+      | q₀, none, ΓCfg.empty => {(q₁, [ΓCfg.start, ΓCfg.empty])}
+      | q₁, none, ΓCfg.production A =>
+        (fun (q, l) =>
+          have h₀ := h (q, l)
+          if q = q₁ ∧ ∃ (p : ContextFreeRule α G.NT), p ∈ G.rules ∧ A = p.input ∧ l = List.map symbolToΓ p.output then
+            True
+          else
+            False
+        )
+      | q₁, some _, ΓCfg.term _ => {(q₂, [])}
+      | _, _, _ => ∅
+  )
+
+  let initial_state : Q := q₀
+  let initial_stack : Γ := ΓCfg.start
+
+  let M : PDA Q α Γ := ⟨transition, initial_state, initial_stack, (· = q₂)⟩
+
+  have hQ : Fintype Q := by sorry
+
+  use Q, Γ, M, hQ
+  ext
+  unfold ContextFreeGrammar.language ContextFreeGrammar.Generates ContextFreeGrammar.Derives ContextFreeGrammar.Produces
+  unfold PDA.language_empty_stack PDA.stepClosure
+
+  #check Relation.ReflTransGen
+
 
 lemma language_PDA_implies_exists_cfg (L : Language α) (M : PDA Q α Γ)
-  (h : L = M.language_empty_stack ∨ L = M.language_final_state) :
+  (h : L = M.language_empty_stack ∨ L = M.language_final_state) [Fintype Q]:
   ∃ (G : ContextFreeGrammar α), G.language = L := by sorry
 
-theorem PDA_equiv_CFG (L : Language α) :
-  ∃ (Q : Type u) (Γ : Type w) (M : PDA Q α Γ), L = M.language_empty_stack ∨ L = M.language_final_state
-  ↔
-  ∃ (G : ContextFreeGrammar α),L = G.language
-  := by sorry
+theorem PDA_equiv_CFG {L : Language α} :
+  (∃ (Q : Type u) (Γ : Type v) (M : PDA Q α Γ) (hF : Fintype Q), L = M.language_empty_stack ∨ L = M.language_final_state) ↔ L.IsContextFree
+  := by
+  constructor
+  · intro a
+    rcases a with ⟨Q, Γ, M, h⟩
+    rcases h with ⟨_, h₁⟩
+    unfold Language.IsContextFree
+    exact language_PDA_implies_exists_cfg L M h₁
+  · intro a
+    unfold Language.IsContextFree at a
+    rcases a with ⟨G, h⟩
+    have h₁ := language_context_free_implies_exists_PDA G
+    rcases h₁ with ⟨Q, Γ, M, hQ, h₂⟩
+    apply Eq.trans (Eq.symm h) at h₂
+    use Q, Γ, M, hQ
+    apply Or.inl
+    exact h₂
 
 /-
   Since a DFA can be simulated by a PDA, all regular languages are context-free
 -/
-theorem regular_implies_context_free (L : Language α) (h : L.IsRegular) : (L.IsContextFree) :=
-  by sorry
+theorem regular_implies_context_free (L : Language α) (h : L.IsRegular) : (L.IsContextFree) := by
+  unfold Language.IsRegular at h
+  rcases h with ⟨Q, h₁, M, final⟩
+  -- A DFA can be simulated by a PDA by ignoring the stack entirely.
+  let Q' := Q
+  let Γ' := Unit
+
+  let transition : Q' → Option α → Γ' → Set (Q' × List Γ') :=
+    (fun q a x =>
+      match q, a, x with
+      | q, some a', _ => {(M.step q a', [])}
+      | _, _, _ => ∅
+    )
+
+  let initial_state : Q' := M.start
+  let initial_stack : Γ' := Unit.unit
+  let accept : Q' → Prop := M.accept
+
+  let M' : PDA Q' α Γ' := ⟨transition, initial_state, initial_stack, accept⟩
+  have hQ : Fintype Q' := by apply h₁
+
+  have h₁ : M.accepts = M'.language_final_state := by
+    sorry
+
+  unfold Language.IsContextFree
+  apply language_PDA_implies_exists_cfg L M'
+  apply Or.inr
+  exact Eq.trans (Eq.symm final) h₁
 
 /-
 # Non-Context-Free Languages
