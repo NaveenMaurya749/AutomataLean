@@ -418,3 +418,8 @@ theorem pumping_lemma (L : Language α) (h : L.IsContextFree) :
       )
   )
 := by
+  unfold Language.IsContextFree at h
+  rcases h with ⟨G, h'⟩
+  rcases ParseTree.exists_CNF G with ⟨CNF, h⟩
+  sorry
+  -- The proof of this theorem is constructive and involves using the properties of CNF grammars.

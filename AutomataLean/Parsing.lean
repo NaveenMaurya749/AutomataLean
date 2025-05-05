@@ -1,5 +1,7 @@
 import Mathlib.Computability.ContextFreeGrammar
 
+open ContextFreeGrammar
+
 universe u v w
 
 variable {α β γ : Type*}
@@ -35,13 +37,21 @@ def rootSymbol {α β : Type*} (t : ParseTree α β) : Symbol α β :=
   | leaf a => Symbol.terminal a
   | node n _ => Symbol.nonterminal n
 
+/- This checks if a tree is a binary tree -/
+def isBinary {α β : Type*} (t : ParseTree α β) : Prop :=
+  match t with
+  | leaf _ => True
+  | node _ l => l.length = 2 ∧ List.foldl And True (List.map isBinary l)
+
 open ContextFreeGrammar
 
 /-This is a function that checks whether a given parse tree is valid according to grammar G. -/
-def isParseTree (G : ContextFreeGrammar α) (t : ParseTree α G.NT) : Prop :=
+def isParseTreeValid (G : ContextFreeGrammar α) (t : ParseTree α G.NT) : Prop :=
   match t with
   | ParseTree.leaf _ => True
-  | ParseTree.node n l => ⟨n, List.map rootSymbol l⟩ ∈ G.rules ∧ List.foldl (fun a b => a ∧ b) True (List.map (isParseTree G) l)
+  | ParseTree.node n l => ⟨n, List.map rootSymbol l⟩ ∈ G.rules ∧ List.foldl (fun a b => a ∧ b) True (List.map (isParseTreeValid G) l)
+
+end ParseTree
 
 /-
 # Chomsky Normal Form
@@ -83,19 +93,44 @@ Chomsky Normal Form is useful because
 - Binary trees are well-understood and easy to work with.
 -/
 
+/-- The yield of a parse tree is the list of terminal symbols that can be obtained by traversing the leaves of the tree. -/
 @[simp]
 def yield (t : ParseTree α β) : List α :=
   match t with
   | leaf a => [a]
   | node _ l => List.foldl (fun a b => a ++ b.yield) [] l
 
+/-- The height of a parse tree is the length of the longest path from the root to a leaf. -/
 @[simp]
 def height (t : ParseTree α β) : Nat :=
   match t with
   | leaf _ => 0
   | node _ l => 1 + List.foldl (fun a b => max a b.height) 0 l
 
+/-- The parse tree of a context-free grammar is a tree where each node represents a non-terminal symbol and each leaf represents a terminal symbol.
+    Each node
+-/
+@[simp]
+def set_parseTrees (G : ContextFreeGrammar α) (w : List α) (h : w ∈ G.language) : Set (ParseTree α G.NT) :=
+  { t : ParseTree α G.NT | t.yield = w ∧ isParseTreeValid G t }
+
+@[simp]
+theorem yields_iff_in_language (G : ContextFreeGrammar α) :
+  ∀ w, w ∈ G.language ↔ ∃ (t : ParseTree α G.NT), isParseTreeValid G t ∧ w = t.yield := by
+  sorry
+
+@[simp]
+theorem parseTree_areParseTree {w} (G : ContextFreeGrammar α) (h : w ∈ G.language) :
+  ∀ t, (t ∈ set_parseTrees G w h) → isParseTreeValid G t := by
+  sorry
+
+@[simp]
+theorem parseTree_of_CNF_binary (CNF : ChomskyNormalForm α) (h : w ∈ CNF.G.language) :
+  ∀ t, (t ∈ set_parseTrees CNF.G w h) → isBinary t := by
+  sorry
+
 /- Height of a CNF Parse Tree is nonzero -/
+@[simp]
 lemma height_nonzero (CNF : ChomskyNormalForm α) (t : ParseTree α CNF.G.NT) :
   t.height ≠ 0 := by
   sorry
