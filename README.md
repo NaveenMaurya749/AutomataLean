@@ -25,6 +25,36 @@ The project aims to address the following goals:
 ## Git Repository
 The project repository will be maintained on Github at [https://github.com/NaveenMaurya749/AutomataLean](https://github.com/NaveenMaurya749/AutomataLean)
 
+### Structure of the Repository
+The major files of the repository are structured as follows:
+
+```
+AutomataLean/           -- repository
+├── AutomataLean/       -- main folder containing source code
+│ ├── Basic.lean        -- basic macros for proofwriting
+│ ├── PDAs.lean         -- pushdown automata (defn, properties, relation to cfgs and cfls, pumping lemma)
+│ ├── PDA_testing.lean  -- example of Pushdown Automata (balanced() parentheses())
+│ ├── DPDAs.lean        -- deterministic PDAs (abadoned)
+│ └── Parsing.lean      -- parse trees (defn), validity, chomsky normal form (cnf), properties
+├── AutomataLean.lean   -- root file to be built, imports all modules from AutomataLean/
+└── README.md           -- documentation
+```
+### Import Dependencies
+```
+AutomataLean.lean
+  ├── Basic.lean
+  │    └── Lean
+  ├── Parsing.lean
+  │    └── Mathlib.Computability.ContextFreeGrammar
+  ├── PDAs.lean
+  │    ├── Mathlib
+  │    ├── Basic.lean
+  │    └── Parsing.lean 
+  └── PDA_testing.lean
+       └── PDAs.lean 
+```
+
 ## References
 1. M. Sipser, "Introduction to the Theory of Computation", *Course Technology,* *Boston, MA,* *Third edition,* (*2013*)
-2. Hopcroft, Ullman. "Introduction to Automata Theory, Languages and Computation" (*1979*) 
+2. Hopcroft, Ullman. "Introduction to Automata Theory, Languages and Computation" (*1979*)
+3. Various suggestions from indviduals in the Lean Community.
