@@ -1,4 +1,4 @@
-import AutomataLean.Basic
+/-import AutomataLean.Basic
 import Mathlib
 
 /-
@@ -81,7 +81,7 @@ First, we define a deterministic pushdown automata (DPDA) as a PDA with the foll
 3. The stack is allowed to be empty when reading an ε-transition.
 
 -/
-
+/-
 structure DPDA (Q : Type u) (α : Type v) (Γ : Type w) where
   /-- A transition function from state to state labelled by the alphabet. -/
   transition : Q → Option α → Γ → Option (Q × (List Γ))
@@ -229,3 +229,5 @@ Additional diagnostic information may be available using the `set_option diagnos
 -- #eval my_dpda.accepts [left, right, left, right]
 
 end DPDA
+-/
+-/
