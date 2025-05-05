@@ -124,7 +124,7 @@ theorem parseTree_areParseTree {w} (G : ContextFreeGrammar α) (h : w ∈ G.lang
 
 /-- Parse Tree of any string against a grammar in CNF is a binary tree -/
 @[simp]
-theorem parseTree_of_CNF_binary (CNF : ChomskyNormalForm α) (h : w ∈ CNF.G.language) :
+theorem parseTree_of_CNF_binary {w} (CNF : ChomskyNormalForm α) (h : w ∈ CNF.G.language) :
   ∀ t, (t ∈ set_parseTrees CNF.G w h) → isBinary t := by
   sorry
 
