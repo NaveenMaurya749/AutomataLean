@@ -1,6 +1,14 @@
 import AutomataLean.Basic
 import Mathlib
 
+/-
+# THIS FILE WAS AN INCOMPLETE ATTEMPT OF AN IMPLEMENTATION IN A DIFFERENT DIRECTION
+# WHICH WAS LATER ABANDONED OWING TO THE FACT THAT IT WAS GETTING PROBLEMATIC
+# INSTEAD OF IMPLEMENTING DPDAs FIRST, IT IS BETTER TO IMPLEMENT THE FORMAL THEORY
+# OF PDAs. THIS FILE DOES NOT YIELD RESULTS WHICH ARE USED ANYWHERE ELSE IN THIS
+# REPOSITORY.
+-/
+
 universe u v w
 
 open Computability
@@ -81,7 +89,7 @@ structure DPDA (Q : Type u) (α : Type v) (Γ : Type w) where
   initial_stack : Γ
   accept : Q → Prop
   h_determinism : ∀ (q : Q) (y : Γ),
-    transition q none y ≠ none → (a : α) → transition q (some a) y = none
+  transition q none y ≠ none → (a : α) → transition q (some a) y = none
 
 #do_later "Worry about Fintype and Finite later"
 

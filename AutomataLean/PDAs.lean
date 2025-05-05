@@ -33,10 +33,6 @@ open PDA
 
 variable {Q : Type u} {α : Type v} {Γ : Type w}
 
-def start_symbol (Γ : Type w) [Inhabited Γ] : Γ := default
-
-local notation (priority := high) "$" => start_symbol
-
 -- Inhabited instance for PDA
 instance [Inhabited Q] [Inhabited Γ]: Inhabited (PDA Q α Γ) :=
     ⟨PDA.mk (fun _ _ _ => ∅) (default) (default) (fun _ => default)⟩
@@ -78,6 +74,7 @@ finite number of step relations, zero, one or `n : Nat`
 
 def stepClosure (M : PDA Q α Γ ) := Relation.ReflTransGen M.step
 
+/- The transitive and reflexive closure is equivalent to existence of a valid sequence of steps between -/
 lemma stepClosure_equiv (M : PDA Q α Γ) : M.stepClosure =
   (fun desc₁ desc₂ =>
   ∃ (steps : List (InstantDesc M)),
@@ -270,6 +267,7 @@ local notation (priority := high) "$" => ΓCfg.empty
 
 -- instance h {G : ContextFreeGrammar α} (x : QCfg × List ΓCfg) (A : G.NT) : Decidable (x.1 = q₁ ∧ ∃ (p : ContextFreeRule α G.NT), p ∈ G.rules ∧ A = p.input ∧ x.2 = List.map symbolToΓ p.output)
 
+/- First Direction -/
 lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
   ∃ (Q : Type u) (Γ: Type v) (M : PDA Q α Γ) (h : Fintype Q),
   G.language = M.language_empty_stack
@@ -315,6 +313,7 @@ lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
 
   #check Relation.ReflTransGen
 
+/- The other direction -/
 lemma language_PDA_implies_exists_cfg (L : Language α) (M : PDA Q α Γ)
   (h : L = M.language_empty_stack ∨ L = M.language_final_state) [Fintype Q]:
   ∃ (G : ContextFreeGrammar α), G.language = L := by sorry
@@ -339,9 +338,7 @@ theorem PDA_equiv_CFG {L : Language α} :
     apply Or.inl
     exact h₂
 
-/-
-  Since a DFA can be simulated by a PDA, all regular languages are context-free
--/
+/- Since a DFA can be simulated by a PDA, all regular languages are context-free -/
 theorem regular_implies_context_free (L : Language α) (h : L.IsRegular) : (L.IsContextFree) := by
   unfold Language.IsRegular at h
   rcases h with ⟨Q, h₁, M, final⟩
@@ -349,6 +346,7 @@ theorem regular_implies_context_free (L : Language α) (h : L.IsRegular) : (L.Is
   let Q' := Q
   let Γ' := Unit
 
+  -- This simulates the transition function of the DFA
   let transition : Q' → Option α → Γ' → Set (Q' × List Γ') :=
     (fun q a x =>
       match q, a, x with
@@ -397,6 +395,7 @@ condition is sometimes useful in proving that certain languages are not context
 free.
 -/
 
+/- Handy notation to write w*n for w...w, n times -/
 def mulList (l : List α) (n : Nat) : List α :=
   match n with
   | 0 => []
@@ -406,6 +405,7 @@ def mulList (l : List α) (n : Nat) : List α :=
 instance listHMul : HMul (List α) Nat (List α) where
   hMul := mulList
 
+/- Finally, the theorem -/
 theorem pumping_lemma (L : Language α) (h : L.IsContextFree) :
   ∃ (p : Nat),
   ∀ w ∈ L, w.length ≥ p →

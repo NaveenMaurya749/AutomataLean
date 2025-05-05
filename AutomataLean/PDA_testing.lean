@@ -1,6 +1,19 @@
 import AutomataLean.PDAs
 open AutomataLean.PDAs
 
+/-
+The following code defines a simple pushdown automaton (PDA) that recognizes the language of balanced parentheses.
+The PDA has two states (q0 and q1), two types of parentheses (left and right), and a stack that can contain either an 'A' or a 'Z'.
+The PDA transitions are defined as follows:
+- q0, left, Z -> (q0, [A, Z])
+- q0, left, A -> (q0, [A, A])
+- q0, right, A -> (q1, [])
+- q1, right, A -> (q1, [])
+- q1, right, Z -> (q1, [])
+The PDA accepts the input if it ends in state q1 and the stack is empty.
+
+-/
+
 inductive Parentheses : Type
 | left | right
 deriving Inhabited, Repr
