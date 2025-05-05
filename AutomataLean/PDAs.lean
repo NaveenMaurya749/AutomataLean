@@ -1,4 +1,5 @@
 import AutomataLean.Basic
+import AutomataLean.Parsing
 import Mathlib
 
 universe u v w
@@ -314,11 +315,11 @@ lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
 
   #check Relation.ReflTransGen
 
-
 lemma language_PDA_implies_exists_cfg (L : Language α) (M : PDA Q α Γ)
   (h : L = M.language_empty_stack ∨ L = M.language_final_state) [Fintype Q]:
   ∃ (G : ContextFreeGrammar α), G.language = L := by sorry
 
+/- Finally, we can use the two directions to prove the theorem -/
 theorem PDA_equiv_CFG {L : Language α} :
   (∃ (Q : Type u) (Γ : Type v) (M : PDA Q α Γ) (hF : Fintype Q), L = M.language_empty_stack ∨ L = M.language_final_state) ↔ L.IsContextFree
   := by
@@ -416,4 +417,4 @@ theorem pumping_lemma (L : Language α) (h : L.IsContextFree) :
         v.length + x.length + y.length ≤ p
       )
   )
-:= by sorry
+:= by
