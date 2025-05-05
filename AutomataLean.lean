@@ -2,5 +2,5 @@
 -- Import modules here that should be built as part of the library.
 import AutomataLean.Basic
 import AutomataLean.PDAs
-import AutomataLean.DPDAs
+import AutomataLean.PDA_testing
 import AutomataLean.Parsing
