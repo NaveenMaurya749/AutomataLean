@@ -46,12 +46,10 @@ AutomataLean.lean
   │    └── Lean
   ├── Parsing.lean
   │    └── Mathlib.Computability.ContextFreeGrammar
-  ├── PDAs.lean
-  │    ├── Mathlib
-  │    ├── Basic.lean
-  │    └── Parsing.lean 
-  └── PDA_testing.lean
-       └── PDAs.lean 
+  └── PDAs.lean
+       ├── Mathlib
+       ├── Basic.lean
+       └── Parsing.lean 
 ```
 
 ## References
