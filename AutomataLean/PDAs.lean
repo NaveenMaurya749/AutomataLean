@@ -5,8 +5,6 @@ import Mathlib
 universe u v w
 
 open Computability
-open Relation
-open Symbol
 
 /-
 # Pushdown Automata (PDA)
@@ -196,6 +194,7 @@ theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (
     have h_part₂ : M.language_empty_stack = M''.language_final_state := sorry
 
     use h_part₁, h_part₂
+    sorry
 
 #do_later "Complete this proof!"
 
@@ -311,7 +310,7 @@ lemma language_context_free_implies_exists_PDA (G : ContextFreeGrammar α) :
   unfold ContextFreeGrammar.language ContextFreeGrammar.Generates ContextFreeGrammar.Derives ContextFreeGrammar.Produces
   unfold PDA.language_empty_stack PDA.stepClosure
 
-  #check Relation.ReflTransGen
+  sorry
 
 /- The other direction -/
 lemma language_PDA_implies_exists_cfg (L : Language α) (M : PDA Q α Γ)
