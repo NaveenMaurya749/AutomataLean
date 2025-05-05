@@ -194,9 +194,6 @@ theorem final_state_equiv_empty_stack {Q : Type u} {α : Type v} {Γ : Type w} (
     have h_part₂ : M.language_empty_stack = M''.language_final_state := sorry
 
     use h_part₁, h_part₂
-    sorry
-
-#do_later "Complete this proof!"
 
 /-
 # Context-Free Grammars
